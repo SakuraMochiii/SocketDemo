@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what) {
                 case 1:
-                    tv_show.setText(msg.obj.toString());
+                    tv_show.append(msg.obj.toString());
                     break;
             }
             super.handleMessage(msg);
@@ -88,22 +88,45 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void connectServer(String ip, String port, String content) {
         //get socket output
-
         Thread connServerTh = new Thread(() -> {
             Socket socket = null;
+            InputStream in = null;
+            OutputStream out = null;
             try {
                 socket = new Socket(ip, Integer.parseInt(port));
-
-                OutputStream out = socket.getOutputStream();
-
+                in = socket.getInputStream();
+                out = socket.getOutputStream();
                 String s1 = longToDate(System.currentTimeMillis());
                 out.write(content.getBytes());
+                socket.shutdownOutput();
+                byte[] buf = new byte[1024];
+                int len;
+                StringBuilder sb = new StringBuilder();
+                while ((len = in.read(buf)) != -1) {
+                    sb.append(new String(buf, 0, len, StandardCharsets.UTF_8));
+                }
+                System.out.println("message from server：" + sb);
 //                    out.flush();
                 System.out.println("ok," + s1 + "," + content);
-                handler.obtainMessage(1, "ok," + s1 + "," + content).sendToTarget();
+                handler.obtainMessage(1, "ok," + s1 + "," + content+"\n").sendToTarget();
+                handler.obtainMessage(1, "message from server: " + sb+"\n").sendToTarget();
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("socket.write() " + e.getMessage());
+                try {
+                    if (in != null) {
+                        in.close();
+                    }
+                } catch (IOException ioException) {
+                    e.printStackTrace();
+                }
+                try {
+                    if (out != null) {
+                        out.close();
+                    }
+                } catch (IOException ioException) {
+                    e.printStackTrace();
+                }
                 try {
                     if (socket != null) {
                         socket.close();
