@@ -1,2 +1,2 @@
 # SocketDemo
-An normal Android demo for socket connection
+A demo for socket connection.
